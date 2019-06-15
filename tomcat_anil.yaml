@@ -4,7 +4,7 @@
   tags :
     - APP
   vars :
-    TOMCAT_URL : http://www-eu.apache.org/dist/tomcat/tomcat-9/v9.0.5/bin/apache-tomcat-9.0.5.tar.gz
+    TOMCAT_URL : http://mirrors.estointernet.in/apache/tomcat/tomcat-9/v9.0.21/bin/apache-tomcat-9.0.21.tar.gz
     
     USERNAME : student
     TOMCAT_DIR : /tomcat
