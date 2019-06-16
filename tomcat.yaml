@@ -43,7 +43,7 @@
       tags :
         - always
       find :
-        paths : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/webapps"
+        paths : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/webapps"
         file_type : any
       register : findout
 
@@ -63,8 +63,8 @@
         url : "{{item.URL}}"
         dest : "{{item.dest}}"
       loop :
-        - { URL : "{{STUDENT_WAR}}", dest: "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/webapps"}
-        - { URL : "{{MYSQL_CONNECTOR}}", dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/lib"}
+        - { URL : "{{STUDENT_WAR}}", dest: "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/webapps"}
+        - { URL : "{{MYSQL_CONNECTOR}}", dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/lib"}
       become_user : "{{USERNAME}}"
 
     - name : define DB variables
@@ -99,7 +99,7 @@
         - always
       template :
         src : /var/lib/jenkins/files/context.xml.j2
-        dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/conf/context.xml"
+        dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/conf/context.xml"
         
     - name : check the running status of tomcat
       tags :
@@ -113,7 +113,7 @@
         - always
       shell : nohup sh shutdown.sh && nohup sh startup.sh
       args :
-        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/bin"
+        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/bin"
       when : output.rc == 0
 
     - name : start the app-server
@@ -121,7 +121,7 @@
         - always
       shell : nohup sh startup.sh
       args :
-        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/bin"
+        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/bin"
       when : output.rc != 0
 
 - name : create schema and tables for student
