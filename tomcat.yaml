@@ -1,3 +1,123 @@
+- name: Creating the web layer
+  hosts: "{{environment}}"
+  become: yes
+  vars:
+    Modjk_url: https://www-us.apache.org/dist/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.46-src.tar.gz
+  tasks:
+    - name: Defining the Modjk_src direct variable
+      tags :
+        - always
+      shell: echo "{{Modjk_url}}" | awk -F / '{print $NF}' | sed -e 's/.tar.gz//'
+      register: output
+    - name: printing the output
+      tags :
+        - always
+      debug:
+        msg: "{{output}}"
+    - name: Setting up the Modjk_src
+      tags :
+        - always
+      set_fact:
+        Modjk_src: "{{output.stdout}}"
+    - name: print the acutal output
+      tags :
+        - always
+      debug:
+        msg: "{{Modjk_src}}"
+    - name: Download and Installing the packages
+      tags :
+        - always
+      yum:
+        name: "{{item}}"
+        state: latest
+      loop:
+        - httpd
+        - gcc
+        - httpd-devel
+        - java
+    - name: Starting the webserver
+      tags :
+        - always
+      service:
+         name: httpd
+         state: started
+   ## - name: downloading the mod_jk
+   ##   get_url: 
+   ##     url: http://mirrors.estointernet.in/apache/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.46-src.tar.gz
+   ##     dest: /opt
+    ##- name: Extracting the mod_jk
+    ##  unarchive:
+       ## src: /opt/tomcat-connectors-1.2.46-src.tar.gz
+       ## dest: /opt   
+    - name: Extracting the mod_jk
+      tags :
+        - always
+      unarchive:
+          src: "{{Modjk_url}}"
+          dest: /opt  
+          remote_src: yes
+    - name: statistics of mod_jk.so
+      tags :
+        - always
+      stat:
+        path: /etc/httpd/modules/mod_jk.so
+      register: out
+
+    - name: mod_jk.so is existing
+      tags :
+        - always
+      debug:
+        msg: " mod_jk.so is already  exists "
+      when: out.stat.exists == true
+
+    - name: Configuring the mod_jk
+      tags :
+        - always
+      shell: "{{item}}"
+      args:
+        chdir: /opt/{{Modjk_src}}/native
+      loop:
+        - ./configure --with-apxs=/bin/apxs
+        - make
+        - make install
+      when: out.stat.exists == false
+
+    - name: Creating the modjk.conf
+      tags :
+        - always
+      blockinfile:
+         path: /etc/httpd/conf.d/modjk.conf
+         block: |
+              LoadModule jk_module modules/mod_jk.so
+              JkWorkersFile conf.d/workers.properties
+              JkLogFile logs/mod_jk.log
+              JkLogLevel info
+              JkLogStampFormat "[%a %b %d %H:%M:%S %Y]"
+              JkOptions +ForwardKeySize +ForwardURICompat -ForwardDirectories
+              JkRequestLogFormat "%w %V %T"
+              JkMount /student tomcatA
+              JkMount /student/* tomcatA
+         create: yes
+    - name: Creating the workers.properties
+      tags :
+        - always
+      blockinfile:
+         path: /etc/httpd/conf.d/workers.properties
+         block: |
+              ### Define workers
+              worker.list=tomcatA
+              ### Set properties
+              worker.tomcatA.type=ajp13
+              worker.tomcatA.host=10.160.0.38
+              worker.tomcatA.port=8009
+         create: yes
+    - name: Restarting the httpd service
+      tags :
+        - always
+      service:
+         name: httpd
+         state: restarted
+
 - name : app-server
   hosts : "{{environment}}"
   become : yes
@@ -34,7 +154,7 @@
       tags :
         - always
       unarchive :
-        src : http://mirrors.estointernet.in/apache/tomcat/tomcat-9/v9.0.21/bin/apache-tomcat-9.0.21.tar.gz
+        src : https://www-us.apache.org/dist/tomcat/tomcat-9/v9.0.19/bin/apache-tomcat-9.0.19.tar.gz
         dest : "{{TOMCAT_DIR}}"
         remote_src : yes
       become_user : "{{USERNAME}}"
@@ -43,7 +163,7 @@
       tags :
         - always
       find :
-        paths : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/webapps"
+        paths : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/webapps"
         file_type : any
       register : findout
 
@@ -63,8 +183,8 @@
         url : "{{item.URL}}"
         dest : "{{item.dest}}"
       loop :
-        - { URL : "{{STUDENT_WAR}}", dest: "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/webapps"}
-        - { URL : "{{MYSQL_CONNECTOR}}", dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/lib"}
+        - { URL : "{{STUDENT_WAR}}", dest: "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/webapps"}
+        - { URL : "{{MYSQL_CONNECTOR}}", dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/lib"}
       become_user : "{{USERNAME}}"
 
     - name : define DB variables
@@ -99,7 +219,7 @@
         - always
       template :
         src : /var/lib/jenkins/files/context.xml.j2
-        dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/conf/context.xml"
+        dest : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/conf/context.xml"
         
     - name : check the running status of tomcat
       tags :
@@ -113,7 +233,7 @@
         - always
       shell : nohup sh shutdown.sh && nohup sh startup.sh
       args :
-        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/bin"
+        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/bin"
       when : output.rc == 0
 
     - name : start the app-server
@@ -121,7 +241,7 @@
         - always
       shell : nohup sh startup.sh
       args :
-        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.21/bin"
+        chdir : "{{TOMCAT_DIR}}/apache-tomcat-9.0.19/bin"
       when : output.rc != 0
 
 - name : create schema and tables for student
