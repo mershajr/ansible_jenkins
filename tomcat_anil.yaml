@@ -112,7 +112,9 @@
         DB_NAME : studentqaapp
         DB_USER : student
         DB_PASSWORD : student@1
-        #APP_HOST : student-dev-app-server
+        DB_SCHEMA : studentqaapp
+          
+      #APP_HOST : student-dev-app-server
 
     # - name : define QA DB variables
     #   tags :
